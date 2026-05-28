@@ -316,9 +316,14 @@ async function startMogBattle(){
 
     mogCooldown = true;
 
+    // LOCK emotion detection during mog battle
+    lastPrediction = "LOCKED";
+
     const countdown = document.getElementById("countdown");
 
     const message = document.getElementById("message");
+
+    resetEffects();
 
     message.innerHTML = "⚔️ MOG OFF INITIATED ⚔️";
 
@@ -363,11 +368,13 @@ async function startMogBattle(){
         navigator.vibrate?.(500);
     }
 
-    setTimeout(()=>{
+    // WAIT before allowing emotions again
+    await sleep(5000);
 
-        mogCooldown = false;
+    mogCooldown = false;
 
-    },5000);
+    // UNLOCK predictions
+    lastPrediction = "";
 }
 
 function sleep(ms){
