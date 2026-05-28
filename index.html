@@ -224,6 +224,11 @@ async function loop() {
 
 async function predict() {
 
+    // STOP prediction updates during mog battle
+    if(mogCooldown){
+        return;
+    }
+
     const prediction = await model.predict(webcam.canvas);
 
     let highest = prediction[0];
