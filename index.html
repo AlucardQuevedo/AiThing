@@ -1,71 +1,160 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <title>Emotion Detector</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+<title>AI Emotion Detector</title>
 
-    <style>
-        body{
-            background-color:#111;
-            color:white;
-            font-family:Arial;
-            text-align:center;
-            margin:0;
-            overflow:hidden;
-        }
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
-        h1{
-            font-size:50px;
-            margin-top:20px;
-        }
+<style>
 
-        #webcam-container{
-            margin-top:20px;
-            position:relative;
-            display:inline-block;
-        }
+body{
+    margin:0;
+    min-height:100vh;
+    overflow:hidden;
+    font-family:Arial, sans-serif;
+    background:linear-gradient(-45deg,#0f0f0f,#1f1f1f,#111,#222);
+    background-size:400% 400%;
+    animation:bgMove 10s ease infinite;
+    color:white;
+    text-align:center;
+}
 
-        canvas{
-            border:5px solid white;
-            border-radius:20px;
-        }
+@keyframes bgMove{
+    0%{background-position:0% 50%;}
+    50%{background-position:100% 50%;}
+    100%{background-position:0% 50%;}
+}
 
-        #message{
-            margin-top:30px;
-            font-size:30px;
-            padding:20px;
-        }
+h1{
+    margin-top:20px;
+    font-size:60px;
+    text-shadow:0 0 20px cyan;
+    letter-spacing:3px;
+}
 
-        #mogText{
-            font-size:70px;
-            color:red;
-            font-weight:bold;
-            text-shadow:0 0 20px red;
-            display:none;
-        }
+button{
+    padding:15px 35px;
+    font-size:24px;
+    border:none;
+    border-radius:15px;
+    background:cyan;
+    color:black;
+    cursor:pointer;
+    font-weight:bold;
+    transition:0.3s;
+    box-shadow:0 0 20px cyan;
+}
 
-        #countdown{
-            font-size:80px;
-            margin-top:20px;
-        }
+button:hover{
+    transform:scale(1.08);
+    box-shadow:0 0 40px cyan;
+}
 
-        #censorBar{
-            position:absolute;
-            width:180px;
-            height:40px;
-            background:black;
-            top:70px;
-            left:10px;
-            display:none;
-            align-items:center;
-            justify-content:center;
-            color:red;
-            font-weight:bold;
-            font-size:28px;
-        }
-    </style>
+#webcam-container{
+    margin-top:30px;
+    position:relative;
+    display:inline-block;
+    border-radius:25px;
+    overflow:hidden;
+    box-shadow:0 0 40px rgba(255,255,255,0.25);
+}
+
+canvas{
+    border-radius:25px;
+    border:4px solid white;
+}
+
+#message{
+    margin-top:25px;
+    font-size:32px;
+    width:70%;
+    margin-left:auto;
+    margin-right:auto;
+    padding:20px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter:blur(10px);
+    box-shadow:0 0 20px rgba(255,255,255,0.1);
+    transition:0.4s;
+}
+
+#countdown{
+    font-size:120px;
+    font-weight:bold;
+    text-shadow:0 0 30px white;
+    margin-top:20px;
+}
+
+#mogText{
+    display:none;
+    position:absolute;
+    top:40%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    z-index:20;
+
+    font-size:120px;
+    color:red;
+    font-weight:bold;
+
+    text-shadow:
+        0 0 10px red,
+        0 0 30px red,
+        0 0 60px darkred;
+
+    animation:shake 0.15s infinite;
+}
+
+@keyframes shake{
+    0%{transform:translate(-50%,-50%) translateX(-5px);}
+    50%{transform:translate(-50%,-50%) translateX(5px);}
+    100%{transform:translate(-50%,-50%) translateX(-5px);}
+}
+
+#censorBar{
+    position:absolute;
+
+    width:70%;
+    height:50px;
+
+    left:15%;
+    top:28%;
+
+    background:black;
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+
+    color:red;
+    font-size:34px;
+    font-weight:bold;
+
+    border-radius:10px;
+
+    letter-spacing:4px;
+
+    box-shadow:0 0 20px red;
+
+    z-index:15;
+}
+
+.pulse{
+    animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+    0%{transform:scale(1);}
+    50%{transform:scale(1.05);}
+    100%{transform:scale(1);}
+}
+
+</style>
 </head>
 
 <body>
@@ -75,6 +164,15 @@
 <button onclick="init()">START</button>
 
 <div id="webcam-container">
+
+    <div id="censorBar">
+        MOGGED
+    </div>
+
+    <div id="mogText">
+        MOGGED
+    </div>
+
 </div>
 
 <div id="countdown"></div>
@@ -82,8 +180,6 @@
 <div id="message">
     Waiting...
 </div>
-
-<div id="mogText">MOGGED</div>
 
 <script>
 
@@ -100,30 +196,29 @@ async function init() {
     const metadataURL = URL + "metadata.json";
 
     model = await tmImage.load(modelURL, metadataURL);
+
     maxPredictions = model.getTotalClasses();
 
     const flip = true;
 
-    webcam = new tmImage.Webcam(300, 300, flip);
+    webcam = new tmImage.Webcam(500, 500, flip);
 
     await webcam.setup();
+
     await webcam.play();
 
     window.requestAnimationFrame(loop);
 
-    document.getElementById("webcam-container").appendChild(webcam.canvas);
-
-    // create censor bar
-    const censor = document.createElement("div");
-    censor.id = "censorBar";
-    censor.innerHTML = "MOGGED";
-
-    document.getElementById("webcam-container").appendChild(censor);
+    document.getElementById("webcam-container")
+        .appendChild(webcam.canvas);
 }
 
 async function loop() {
+
     webcam.update();
+
     await predict();
+
     window.requestAnimationFrame(loop);
 }
 
@@ -134,15 +229,16 @@ async function predict() {
     let highest = prediction[0];
 
     for(let i = 1; i < prediction.length; i++){
+
         if(prediction[i].probability > highest.probability){
+
             highest = prediction[i];
         }
     }
 
     const detected = highest.className;
 
-    // only trigger if confidence high enough
-    if(highest.probability > 0.85){
+    if(highest.probability > 0.80){
 
         if(detected !== lastPrediction){
 
@@ -153,45 +249,54 @@ async function predict() {
     }
 }
 
+function resetEffects(){
+
+    document.getElementById("mogText").style.display = "none";
+
+    document.getElementById("censorBar").style.display = "none";
+
+    document.getElementById("message")
+        .classList.remove("pulse");
+
+    document.body.style.filter = "brightness(1)";
+}
+
 function handleEmotion(emotion){
 
     const message = document.getElementById("message");
 
-    document.body.style.backgroundColor = "#111";
-
-    document.getElementById("mogText").style.display = "none";
-    document.getElementById("censorBar").style.display = "none";
+    resetEffects();
 
     if(emotion === "Happy"){
 
-        document.body.style.backgroundColor = "#ffe066";
+        document.body.style.filter = "hue-rotate(80deg)";
 
         message.innerHTML =
-        "😊 Being happy is good for your brain. Happiness can help lower stress and improve motivation.";
+        "😊 Happiness helps reduce stress and can improve motivation and energy.";
 
     }
 
     else if(emotion === "Sad"){
 
-        document.body.style.backgroundColor = "#4d79ff";
+        document.body.style.filter = "hue-rotate(220deg)";
 
         message.innerHTML =
-        "😢 Try taking deep breaths, talking to someone you trust, listening to music, or getting some sleep.";
+        "😢 Try taking deep breaths, listening to music, resting, or talking to someone you trust.";
 
     }
 
     else if(emotion === "Angry"){
 
-        document.body.style.backgroundColor = "#cc0000";
+        document.body.style.filter = "hue-rotate(320deg)";
 
         message.innerHTML =
-        "😡 Try calming down by breathing slowly, drinking water, or taking a short break.";
+        "😡 Slow breathing, drinking water, or stepping away for a minute can help calm anger.";
 
     }
 
     else if(emotion === "Larry"){
 
-        document.body.style.backgroundColor = "#8a2be2";
+        document.body.style.filter = "hue-rotate(140deg)";
 
         message.innerHTML =
         "🗿 LARRY DETECTED.";
@@ -201,6 +306,7 @@ function handleEmotion(emotion){
     else if(emotion === "Mog"){
 
         if(!mogCooldown){
+
             startMogBattle();
         }
     }
@@ -211,9 +317,10 @@ async function startMogBattle(){
     mogCooldown = true;
 
     const countdown = document.getElementById("countdown");
+
     const message = document.getElementById("message");
 
-    message.innerHTML = "⚔️ MOG OFF INITIATED";
+    message.innerHTML = "⚔️ MOG OFF INITIATED ⚔️";
 
     for(let i = 3; i >= 1; i--){
 
@@ -232,28 +339,39 @@ async function startMogBattle(){
 
     if(userWins){
 
-        document.body.style.backgroundColor = "#00cc66";
+        document.body.style.filter = "hue-rotate(90deg)";
 
-        message.innerHTML = "🔥 YOU WON THE MOG OFF 🔥";
+        message.innerHTML =
+        "🔥 YOU WON THE MOG OFF 🔥";
 
+        message.classList.add("pulse");
     }
+
     else{
 
-        document.body.style.backgroundColor = "black";
+        document.body.style.filter = "brightness(0.3)";
 
-        document.getElementById("mogText").style.display = "block";
+        document.getElementById("mogText")
+            .style.display = "block";
 
-        document.getElementById("censorBar").style.display = "flex";
+        document.getElementById("censorBar")
+            .style.display = "flex";
 
-        message.innerHTML = "💀 YOU GOT MOGGED 💀";
+        message.innerHTML =
+        "💀 YOU GOT MOGGED 💀";
+
+        navigator.vibrate?.(500);
     }
 
     setTimeout(()=>{
+
         mogCooldown = false;
+
     },5000);
 }
 
 function sleep(ms){
+
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
