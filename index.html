@@ -154,12 +154,28 @@ canvas{
     100%{transform:scale(1);}
 }
 
+#statusBanner{
+    font-size:24px;
+    margin-bottom:15px;
+    color:#00ff88;
+    font-weight:bold;
+}
+
+#confidenceBox{
+    margin-top:15px;
+    font-size:24px;
+    opacity:0.8;
+}
 </style>
 </head>
 
 <body>
 
 <h1>AI Emotion Detector</h1>
+<div id="statusBanner">
+    AI READY
+</div>
+
 
 <button onclick="init()">START</button>
 
@@ -177,6 +193,10 @@ canvas{
 
 <div id="countdown"></div>
 
+<div id="confidenceBox">
+    Confidence: 0%
+</div>
+
 <div id="message">
     Waiting...
 </div>
@@ -189,6 +209,13 @@ let model, webcam, maxPredictions;
 
 let lastPrediction = "";
 let mogCooldown = false;
+
+let detectionHistory = [];
+const HISTORY_SIZE = 15;
+
+const winSound = new Audio("win.mp3");
+const loseSound = new Audio("lose.mp3");
+const battleSound = new Audio("battle.mp3");
 
 async function init() {
 
@@ -224,7 +251,6 @@ async function loop() {
 
 async function predict() {
 
-    // STOP prediction updates during mog battle
     if(mogCooldown){
         return;
     }
@@ -236,20 +262,48 @@ async function predict() {
     for(let i = 1; i < prediction.length; i++){
 
         if(prediction[i].probability > highest.probability){
-
             highest = prediction[i];
         }
     }
 
-    const detected = highest.className;
+    document.getElementById("confidenceBox").innerHTML =
+    "Confidence: " + Math.round(highest.probability * 100) + "%";
 
-    if(highest.probability > 0.80){
+    if(highest.probability < 0.75){
+        return;
+    }
 
-        if(detected !== lastPrediction){
+    detectionHistory.push(highest.className);
 
-            lastPrediction = detected;
+    if(detectionHistory.length > HISTORY_SIZE){
+        detectionHistory.shift();
+    }
 
-            handleEmotion(detected);
+    const counts = {};
+
+    detectionHistory.forEach(item=>{
+        counts[item] = (counts[item] || 0) + 1;
+    });
+
+    let winner = null;
+    let maxCount = 0;
+
+    for(const emotion in counts){
+
+        if(counts[emotion] > maxCount){
+
+            maxCount = counts[emotion];
+            winner = emotion;
+        }
+    }
+
+    if(maxCount >= 8){
+
+        if(winner !== lastPrediction){
+
+            lastPrediction = winner;
+
+            handleEmotion(winner);
         }
     }
 }
@@ -267,6 +321,8 @@ function resetEffects(){
 }
 
 function handleEmotion(emotion){
+    document.getElementById("statusBanner").innerHTML =
+"DETECTED: " + emotion.toUpperCase();
 
     const message = document.getElementById("message");
 
@@ -331,6 +387,8 @@ async function startMogBattle(){
     resetEffects();
 
     message.innerHTML = "⚔️ MOG OFF INITIATED ⚔️";
+    battleSound.play().catch(()=>{});
+
 
     for(let i = 3; i >= 1; i--){
 
@@ -353,11 +411,13 @@ async function startMogBattle(){
 
         message.innerHTML =
         "🔥 YOU WON THE MOG OFF 🔥";
+        winSound.play().catch(()=>{});
 
         message.classList.add("pulse");
     }
 
     else{
+        loseSound.play().catch(()=>{});
 
         document.body.style.filter = "brightness(0.3)";
 
@@ -371,6 +431,17 @@ async function startMogBattle(){
         "💀 YOU GOT MOGGED 💀";
 
         navigator.vibrate?.(500);
+        document.body.animate(
+[
+    {transform:"translateX(-10px)"},
+    {transform:"translateX(10px)"},
+    {transform:"translateX(-10px)"}
+],
+{
+    duration:300,
+    iterations:5
+}
+);okay so 
     }
 
     // WAIT before allowing emotions again
