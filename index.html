@@ -217,6 +217,10 @@ const winSound = new Audio("win.mp3");
 const loseSound = new Audio("lose.mp3");
 const battleSound = new Audio("battle.mp3");
 
+winSound.volume = 1.0;
+loseSound.volume = 1.0;
+battleSound.volume = 0.8;
+
 async function init() {
 
     const modelURL = URL + "model.json";
@@ -270,6 +274,15 @@ async function predict() {
 
     const prediction = await model.predict(webcam.canvas);
 
+    console.clear();
+
+prediction.forEach(p => {
+    console.log(
+        p.className + ": " +
+        (p.probability * 100).toFixed(1) + "%"
+    );
+});
+
     let highest = prediction[0];
 
     for(let i = 1; i < prediction.length; i++){
@@ -282,9 +295,9 @@ async function predict() {
     document.getElementById("confidenceBox").innerHTML =
     "Confidence: " + Math.round(highest.probability * 100) + "%";
 
-    if(highest.probability < 0.75){
-        return;
-    }
+    if(highest.probability < 0.50){
+    return;
+}
 
     detectionHistory.push(highest.className);
 
