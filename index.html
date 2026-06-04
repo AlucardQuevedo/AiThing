@@ -230,7 +230,20 @@ async function init() {
 
     webcam = new tmImage.Webcam(500, 500, flip);
 
+    try {
     await webcam.setup();
+} catch(err){
+    alert("Webcam permission denied or unavailable");
+    console.error(err);
+    return;
+}
+    document.getElementById("message").innerHTML =
+        "Webcam started!";
+
+    document.getElementById("webcam-container")
+        .appendChild(webcam.canvas);
+
+    window.requestAnimationFrame(loop);
 
     await webcam.play();
 
@@ -441,7 +454,7 @@ async function startMogBattle(){
     duration:300,
     iterations:5
 }
-);okay so 
+);
     }
 
     // WAIT before allowing emotions again
