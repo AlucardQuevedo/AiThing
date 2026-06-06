@@ -1,4 +1,5 @@
 # Teachable Machine (AI EMOTIONS)
+This is an AI Emotions game that shows you want emotion you are and gives you a description
 This was made with assitance from ChatGPT 
 Links to our conversations ->
 https://chatgpt.com/share/6a23a020-dfc8-83e8-9baf-40965956b09b 
